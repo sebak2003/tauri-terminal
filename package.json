@@ -8,7 +8,8 @@
     "build": "tauri build"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2"
+    "@tauri-apps/cli": "^2",
+    "serve": "^14.2.6"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

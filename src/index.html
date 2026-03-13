@@ -30,8 +30,10 @@
       --radius-md: 12px;
       --radius-lg: 16px;
       --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
       --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
       --terminal-bg: #0c0c14;
+      --sidebar-width: 248px;
     }
 
     body {
@@ -131,7 +133,413 @@
     .main-layout {
       height: calc(100vh - 44px);
       display: flex;
+      flex-direction: row;
+    }
+
+    /* ===== Sidebar ===== */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: 200px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
       flex-direction: column;
+      flex-shrink: 0;
+      transition: width var(--transition), min-width var(--transition);
+      overflow: hidden;
+    }
+    .sidebar.collapsed {
+      width: 0;
+      min-width: 0;
+      border-right: none;
+    }
+
+    .sidebar-header {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .sidebar-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .sidebar-add-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+    .sidebar-add-btn:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 6px 0;
+      scrollbar-width: none;
+    }
+    .sidebar-scroll::-webkit-scrollbar { display: none; }
+
+    /* Empty state */
+    .sidebar-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      text-align: center;
+      gap: 12px;
+    }
+    .sidebar-empty-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: var(--bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+    }
+    .sidebar-empty-text {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+    .sidebar-empty-action {
+      margin-top: 4px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px dashed var(--border);
+      background: none;
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+    }
+    .sidebar-empty-action:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    /* Project item */
+    .project-item {
+      margin: 0 6px 2px;
+    }
+    .project-header {
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+      gap: 8px;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+      position: relative;
+    }
+    .project-header:hover {
+      background: var(--bg-hover);
+    }
+    .project-chevron {
+      width: 14px;
+      height: 14px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+      transition: transform var(--transition);
+    }
+    .project-item.expanded .project-chevron {
+      transform: rotate(90deg);
+    }
+    .project-folder-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+    .project-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+    .project-header:hover .project-name {
+      color: var(--text-primary);
+    }
+    .project-count {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      background: var(--bg-tertiary);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 600;
+      min-width: 18px;
+      text-align: center;
+      transition: var(--transition);
+    }
+    .project-count.has-terminals {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .project-actions {
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      transition: var(--transition);
+    }
+    .project-header:hover .project-actions {
+      opacity: 1;
+    }
+    .project-action-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+    .project-action-btn:hover {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .project-action-btn.remove-btn:hover {
+      background: rgba(248, 113, 113, 0.12);
+      color: var(--danger);
+    }
+    .project-action-btn.commit-btn:hover {
+      background: rgba(251, 191, 36, 0.12);
+      color: #fbbf24;
+    }
+    .project-action-btn.push-btn:hover {
+      background: rgba(52, 211, 153, 0.12);
+      color: var(--success);
+    }
+
+    /* Git status - barely there */
+    .git-info {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .git-branch {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+      color: var(--text-tertiary);
+      opacity: 0.45;
+      max-width: 64px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      letter-spacing: -0.2px;
+    }
+    .git-changes {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #f59e0b;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+    .git-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #f59e0b;
+      flex-shrink: 0;
+      animation: gitBreathe 3s ease-in-out infinite;
+    }
+    .git-ahead {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+    .git-ahead svg {
+      width: 10px;
+      height: 10px;
+      opacity: 0.8;
+    }
+    @keyframes gitBreathe {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* Commit inline input */
+    .git-commit-row {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px 5px 36px;
+      animation: fadeInUp 150ms ease;
+    }
+    .git-commit-row.visible {
+      display: flex;
+    }
+    .git-commit-field {
+      flex: 1;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text-primary);
+      font-size: 11px;
+      padding: 5px 8px;
+      outline: none;
+      font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+      transition: border-color var(--transition);
+    }
+    .git-commit-field:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .git-commit-field::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    /* Git operation feedback */
+    .project-header.git-busy .git-dot {
+      animation: spin 600ms linear infinite;
+      border-radius: 2px;
+      width: 6px;
+      height: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Terminal sub-items */
+    .project-terminals {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .project-item.expanded .project-terminals {
+      max-height: 500px;
+    }
+    .terminal-subitem {
+      display: flex;
+      align-items: center;
+      padding: 5px 10px 5px 38px;
+      gap: 8px;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      margin: 0 6px;
+      transition: var(--transition);
+      position: relative;
+    }
+    .terminal-subitem::before {
+      content: '';
+      position: absolute;
+      left: 22px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: var(--border);
+    }
+    .terminal-subitem:hover {
+      background: var(--bg-hover);
+    }
+    .terminal-subitem.active {
+      background: var(--accent-soft);
+    }
+    .terminal-subitem.active .term-label {
+      color: var(--accent);
+    }
+    .terminal-subitem .term-icon {
+      width: 14px;
+      height: 14px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+    .terminal-subitem.active .term-icon {
+      color: var(--accent);
+    }
+    .term-label {
+      flex: 1;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 400;
+      font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .terminal-subitem:hover .term-label {
+      color: var(--text-secondary);
+    }
+    .term-close {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: var(--transition);
+      font-size: 13px;
+      line-height: 1;
+    }
+    .terminal-subitem:hover .term-close { opacity: 0.6; }
+    .term-close:hover { opacity: 1 !important; background: rgba(248,113,113,0.15); color: var(--danger); }
+
+    /* Sidebar resize handle */
+    .sidebar-resize {
+      width: 3px;
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background var(--transition);
+      position: relative;
+    }
+    .sidebar-resize::after {
+      content: '';
+      position: absolute;
+      inset: 0 -3px;
+    }
+    .sidebar-resize:hover,
+    .sidebar-resize.active {
+      background: var(--accent);
+    }
+
+    /* ===== Content Area ===== */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
     }
 
     /* ===== Tasks Panel ===== */
@@ -140,9 +548,10 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      min-height: 120px;
+      min-height: 80px;
       position: relative;
     }
+    .tasks-panel.hidden { display: none; }
 
     .header {
       padding: 16px 24px 16px;
@@ -294,7 +703,7 @@
     }
     .add-task-btn:hover { background: #7c3aed; transform: scale(1.05); }
 
-    /* ===== Resize Handle (vertical, between tasks and terminal) ===== */
+    /* ===== Resize Handle (vertical) ===== */
     .resize-handle {
       height: 6px;
       background: var(--bg-primary);
@@ -327,92 +736,277 @@
     }
     .terminal-panel.visible { display: flex; }
 
-    .terminal-tabs {
+    .terminal-panel-header {
       display: flex;
       align-items: center;
       padding: 0 12px;
-      height: 34px;
+      height: 32px;
       background: var(--bg-secondary);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
-      gap: 2px;
+      gap: 8px;
     }
-    .terminal-tab {
-      padding: 5px 12px;
+    .terminal-panel-label {
       font-size: 11px;
       font-weight: 500;
       color: var(--text-tertiary);
-      background: none;
-      border: none;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: var(--transition);
       display: flex;
       align-items: center;
       gap: 6px;
-      font-family: inherit;
     }
-    .terminal-tab:hover { color: var(--text-secondary); background: var(--bg-hover); }
-    .terminal-tab.active { color: var(--text-primary); background: var(--bg-tertiary); }
-    .terminal-tab .close-tab {
-      width: 14px; height: 14px;
-      display: inline-flex; align-items: center; justify-content: center;
-      border-radius: 3px;
-      opacity: 0;
-      transition: var(--transition);
-      font-size: 14px;
-      line-height: 1;
+    .terminal-panel-label svg { opacity: 0.5; }
+    .terminal-panel-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
     }
-    .terminal-tab:hover .close-tab { opacity: 0.6; }
-    .terminal-tab .close-tab:hover { opacity: 1; background: rgba(248,113,113,0.2); color: var(--danger); }
-
-    .add-terminal-btn {
-      width: 24px; height: 24px;
-      border-radius: var(--radius-sm);
-      border: 1px dashed var(--text-tertiary);
-      background: none;
-      color: var(--text-tertiary);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: var(--transition);
-      margin-left: 4px;
-      font-size: 14px;
-      font-family: inherit;
-    }
-    .add-terminal-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-soft);
-    }
+    .terminal-panel-spacer { flex: 1; }
 
     /* Terminal containers */
     .terminals-container {
       flex: 1;
-      display: flex;
+      position: relative;
       overflow: hidden;
     }
     .terminal-pane {
-      flex: 1;
-      position: relative;
-      min-width: 100px;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      visibility: hidden;
       overflow: hidden;
     }
     .terminal-pane .xterm {
       height: 100%;
       padding: 6px 0 0 8px;
     }
-
-    .terminal-split-handle {
-      width: 4px;
-      background: var(--bg-primary);
-      cursor: col-resize;
-      flex-shrink: 0;
-      transition: background var(--transition);
-      border-left: 1px solid var(--border);
-      border-right: 1px solid var(--border);
+    .terminal-pane.active-pane {
+      visibility: visible;
     }
-    .terminal-split-handle:hover, .terminal-split-handle.active {
+
+    /* ===== Modal ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 150ms ease;
+    }
+    .modal-overlay.open { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-card {
+      width: 440px;
+      max-height: 520px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.03);
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 200ms ease;
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 16px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .modal-close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: var(--transition);
+    }
+    .modal-close-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .modal-search-wrap {
+      padding: 12px 16px;
+      flex-shrink: 0;
+    }
+    .modal-search {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: var(--transition);
+    }
+    .modal-search:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .modal-search::placeholder { color: var(--text-tertiary); }
+
+    .modal-path-info {
+      padding: 0 20px 8px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+      flex-shrink: 0;
+    }
+
+    .modal-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 8px 8px;
+      scrollbar-width: none;
+    }
+    .modal-list::-webkit-scrollbar { display: none; }
+
+    .modal-dir-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      gap: 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .modal-dir-item:hover {
+      background: var(--bg-hover);
+    }
+    .modal-dir-item.selected {
       background: var(--accent-soft);
+    }
+    .modal-dir-item.already-added {
+      opacity: 0.35;
+      cursor: default;
+    }
+    .modal-dir-check {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 2px solid var(--text-tertiary);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+    .modal-dir-item.selected .modal-dir-check {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+    .modal-dir-item.already-added .modal-dir-check {
+      border-color: var(--text-tertiary);
+      background: var(--text-tertiary);
+    }
+    .modal-dir-check svg { width: 10px; height: 10px; opacity: 0; }
+    .modal-dir-item.selected .modal-dir-check svg,
+    .modal-dir-item.already-added .modal-dir-check svg { opacity: 1; }
+    .modal-dir-name {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .modal-dir-item.selected .modal-dir-name { color: var(--text-primary); }
+    .modal-dir-item.already-added .modal-dir-name { color: var(--text-tertiary); }
+    .modal-dir-badge {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--bg-tertiary);
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    .modal-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      gap: 8px;
+    }
+    .modal-loading .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 600ms linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .modal-footer {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-selected-count {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .modal-footer-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .modal-btn {
+      padding: 7px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+    }
+    .modal-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    .modal-btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .modal-btn.primary:hover {
+      background: #7c3aed;
+    }
+    .modal-btn.primary:disabled {
+      opacity: 0.4;
+      cursor: default;
     }
 
     /* ===== Animations ===== */
@@ -426,15 +1020,12 @@
     .task-item:nth-child(3) { animation-delay: 90ms; }
     .task-item:nth-child(4) { animation-delay: 120ms; }
     .task-item:nth-child(5) { animation-delay: 150ms; }
-    .task-item:nth-child(6) { animation-delay: 180ms; }
-    .task-item:nth-child(7) { animation-delay: 210ms; }
-    .task-item:nth-child(8) { animation-delay: 240ms; }
 
     .bg-glow {
       position: fixed; top: -100px; right: -100px;
       width: 300px; height: 300px;
       background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-      pointer-events: none; opacity: 0.2; z-index: 0;
+      pointer-events: none; opacity: 0.15; z-index: 0;
     }
 
     :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -455,49 +1046,94 @@
       <span class="titlebar-title">Tauri Terminal</span>
     </div>
     <div class="titlebar-actions">
-      <button class="titlebar-action" id="toggle-terminal">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-        Terminal
+      <button class="titlebar-action" id="toggle-sidebar" title="Toggle sidebar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </button>
+      <button class="titlebar-action" id="toggle-tasks" title="Toggle tasks">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+        My Day
       </button>
     </div>
   </div>
 
   <!-- Main Layout -->
   <div class="main-layout" id="main-layout">
-    <!-- Tasks Panel -->
-    <div class="tasks-panel" id="tasks-panel">
-      <div class="header">
-        <div>
-          <div class="greeting" id="greeting">Good morning</div>
-          <div class="date-display" id="date-display">Friday, March 13</div>
-        </div>
-        <div class="stats-row">
-          <div class="stat-pill stat-accent"><span class="val" id="stat-total">8</span><span class="label">tasks</span></div>
-          <div class="stat-pill stat-success"><span class="val" id="stat-done">3</span><span class="label">done</span></div>
-        </div>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-label">Projects</span>
+        <button class="sidebar-add-btn" id="sidebar-add-btn" title="Add projects">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
       </div>
-
-      <div class="tasks-scroll" id="tasks-container"></div>
-
-      <div class="add-task-bar">
-        <div class="add-task-input-wrap">
-          <input type="text" class="add-task-input" id="task-input" placeholder="Add a new task..." spellcheck="false">
-          <button class="add-task-btn" id="add-btn" title="Add task">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
-      </div>
+      <div class="sidebar-scroll" id="sidebar-projects"></div>
     </div>
 
-    <!-- Resize Handle -->
-    <div class="resize-handle" id="resize-handle" style="display:none;"></div>
+    <!-- Sidebar resize handle -->
+    <div class="sidebar-resize" id="sidebar-resize"></div>
 
-    <!-- Terminal Panel -->
-    <div class="terminal-panel" id="terminal-panel">
-      <div class="terminal-tabs" id="terminal-tabs">
-        <button class="add-terminal-btn" id="add-terminal-btn" title="New terminal">+</button>
+    <!-- Content Area -->
+    <div class="content-area" id="content-area">
+      <!-- Tasks Panel -->
+      <div class="tasks-panel" id="tasks-panel">
+        <div class="header">
+          <div>
+            <div class="greeting" id="greeting">Good morning</div>
+            <div class="date-display" id="date-display">Friday, March 13</div>
+          </div>
+          <div class="stats-row">
+            <div class="stat-pill stat-accent"><span class="val" id="stat-total">0</span><span class="label">tasks</span></div>
+            <div class="stat-pill stat-success"><span class="val" id="stat-done">0</span><span class="label">done</span></div>
+          </div>
+        </div>
+        <div class="tasks-scroll" id="tasks-container"></div>
+        <div class="add-task-bar">
+          <div class="add-task-input-wrap">
+            <input type="text" class="add-task-input" id="task-input" placeholder="Add a new task..." spellcheck="false">
+            <button class="add-task-btn" id="add-btn" title="Add task">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="terminals-container" id="terminals-container"></div>
+
+      <!-- Resize Handle -->
+      <div class="resize-handle" id="resize-handle" style="display:none;"></div>
+
+      <!-- Terminal Panel -->
+      <div class="terminal-panel" id="terminal-panel">
+        <div class="terminal-panel-header" id="terminal-panel-header">
+          <span class="terminal-panel-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            Terminal
+          </span>
+          <span class="terminal-panel-name" id="terminal-panel-name"></span>
+          <span class="terminal-panel-spacer"></span>
+        </div>
+        <div class="terminals-container" id="terminals-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Project Modal -->
+  <div class="modal-overlay" id="add-project-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">Add Projects</span>
+        <button class="modal-close-btn" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-search-wrap">
+        <input type="text" class="modal-search" id="modal-search" placeholder="Filter directories..." spellcheck="false">
+      </div>
+      <div class="modal-path-info" id="modal-path-info">~/github/</div>
+      <div class="modal-list" id="modal-list"></div>
+      <div class="modal-footer">
+        <span class="modal-selected-count" id="modal-selected-count">0 selected</span>
+        <div class="modal-footer-actions">
+          <button class="modal-btn" id="modal-cancel">Cancel</button>
+          <button class="modal-btn primary" id="modal-add" disabled>Add</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -514,10 +1150,22 @@
     document.getElementById('titlebar-minimize').addEventListener('click', () => appWindow.minimize());
     document.getElementById('titlebar-maximize').addEventListener('click', () => appWindow.toggleMaximize());
 
-    // ===== Tasks =====
-    const checkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
-    const trashSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+    // ===== SVG Icons =====
+    const icons = {
+      check: `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+      trash: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+      folder: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+      chevron: `<svg class="project-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>`,
+      terminal: `<svg class="term-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
+      plus: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+      remove: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+      gitCommit: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+      gitPush: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>`,
+      gitArrowUp: `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="20" x2="12" y2="4"/><polyline points="6 10 12 4 18 10"/></svg>`,
+      emptyFolder: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>`,
+    };
 
+    // ===== Tasks =====
     let tasks = [
       { id: 1, title: 'Review Q1 analytics dashboard', tag: 'work', time: '9:00 AM', priority: 'high', done: false },
       { id: 2, title: 'Morning run — 5K at the park', tag: 'health', time: '7:30 AM', priority: 'medium', done: true },
@@ -542,7 +1190,7 @@
       const sorted = [...tasks].sort((a, b) => a.done !== b.done ? (a.done ? 1 : -1) : pri[a.priority] - pri[b.priority]);
       c.innerHTML = sorted.map(t => `
         <div class="task-item ${t.done ? 'completed' : ''} priority-${t.priority}" data-id="${t.id}">
-          <div class="task-check ${t.done ? 'checked' : ''}" onclick="toggleTask(${t.id})">${checkSvg}</div>
+          <div class="task-check ${t.done ? 'checked' : ''}" onclick="toggleTask(${t.id})">${icons.check}</div>
           <div class="task-content" onclick="toggleTask(${t.id})">
             <div class="task-title">${t.title}</div>
             <div class="task-meta">
@@ -550,7 +1198,7 @@
               <span class="task-time">${t.time}</span>
             </div>
           </div>
-          <button class="task-del" onclick="deleteTask(${t.id})">${trashSvg}</button>
+          <button class="task-del" onclick="deleteTask(${t.id})">${icons.trash}</button>
         </div>`).join('');
       document.getElementById('stat-total').textContent = tasks.length;
       document.getElementById('stat-done').textContent = tasks.filter(t => t.done).length;
@@ -579,60 +1227,233 @@
     setInterval(updateHeader, 60000);
 
     // =======================================
-    // ===== TERMINAL SYSTEM =====
+    // ===== PROJECT & TERMINAL SYSTEM =====
     // =======================================
 
     const FitAddon = window['FitAddon'];
-    let terminals = [];
-    let activeTermIdx = -1;
-    let terminalVisible = false;
-    let terminalPanelHeight = 320;
+    const WSL_BASE = '/home/sebak2003/github';
 
-    // Listen for terminal output from Rust
+    // State
+    let projects = [];       // [{path, name, expanded, terminals: [{id, xterm, fitAddon, paneEl}]}]
+    let activeTermId = null;  // currently visible terminal id
+    let terminalPanelHeight = 340;
+    let tasksVisible = true;
+
+    // ===== Terminal events from Rust =====
     listen('terminal-output', (event) => {
       const { id, data } = event.payload;
-      const term = terminals.find(t => t.id === id);
+      const term = findTerminal(id);
       if (term) term.xterm.write(data);
     });
 
     listen('terminal-exited', (event) => {
       const { id } = event.payload;
-      const term = terminals.find(t => t.id === id);
+      const term = findTerminal(id);
       if (term) term.xterm.writeln('\r\n\x1b[90m[Process exited]\x1b[0m');
     });
 
-    // Toggle terminal
-    document.getElementById('toggle-terminal').addEventListener('click', async () => {
-      if (!terminalVisible) {
-        showTerminalPanel();
-        if (terminals.length === 0) await createTerminal();
-      } else {
-        hideTerminalPanel();
+    function findTerminal(id) {
+      for (const p of projects) {
+        const t = p.terminals.find(t => t.id === id);
+        if (t) return t;
       }
-    });
-
-    document.getElementById('add-terminal-btn').addEventListener('click', () => createTerminal());
-
-    function showTerminalPanel() {
-      terminalVisible = true;
-      document.getElementById('terminal-panel').classList.add('visible');
-      document.getElementById('terminal-panel').style.height = terminalPanelHeight + 'px';
-      document.getElementById('resize-handle').style.display = '';
-      document.getElementById('toggle-terminal').classList.add('active');
-      setTimeout(() => fitAllTerminals(), 50);
+      return null;
     }
 
-    function hideTerminalPanel() {
-      terminalVisible = false;
-      document.getElementById('terminal-panel').classList.remove('visible');
-      document.getElementById('resize-handle').style.display = 'none';
-      document.getElementById('toggle-terminal').classList.remove('active');
+    function findTerminalProject(id) {
+      return projects.find(p => p.terminals.some(t => t.id === id));
     }
 
-    async function createTerminal() {
+    // ===== Load saved projects on startup =====
+    async function initProjects() {
       try {
-        const id = await invoke('spawn_terminal');
-        const xtermId = 'term-' + id;
+        const saved = await invoke('load_projects');
+        projects = saved.map(p => ({ ...p, expanded: true, terminals: [], gitStatus: null }));
+      } catch (e) {
+        console.error('Failed to load projects:', e);
+        projects = [];
+      }
+      renderSidebar();
+      // Fetch git statuses in background (non-blocking)
+      refreshAllGitStatuses();
+    }
+
+    async function persistProjects() {
+      try {
+        await invoke('save_projects', { projects: projects.map(p => ({ path: p.path, name: p.name })) });
+      } catch (e) {
+        console.error('Failed to save projects:', e);
+      }
+    }
+
+    // ===== Sidebar rendering =====
+    function renderSidebar() {
+      const container = document.getElementById('sidebar-projects');
+
+      if (projects.length === 0) {
+        container.innerHTML = `
+          <div class="sidebar-empty">
+            <div class="sidebar-empty-icon">${icons.emptyFolder}</div>
+            <div class="sidebar-empty-text">No projects yet.<br>Add your repos to get started.</div>
+            <button class="sidebar-empty-action" onclick="openAddModal()">Add projects</button>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = projects.map((p, pi) => {
+        const termCount = p.terminals.length;
+        const countClass = termCount > 0 ? 'has-terminals' : '';
+        const expandedClass = p.expanded ? 'expanded' : '';
+        const gs = p.gitStatus;
+
+        const termItems = p.terminals.map((t, ti) => {
+          const activeClass = t.id === activeTermId ? 'active' : '';
+          return `<div class="terminal-subitem ${activeClass}" data-term-id="${t.id}" onclick="activateTerminal(${t.id})">
+            ${icons.terminal}
+            <span class="term-label">bash ${t.id}</span>
+            <button class="term-close" onclick="event.stopPropagation(); closeTerminal(${t.id})">&times;</button>
+          </div>`;
+        }).join('');
+
+        // Git status indicators (barely there)
+        let gitInfoHtml = '';
+        if (gs && gs.is_repo) {
+          const branchHtml = gs.branch ? `<span class="git-branch">${gs.branch}</span>` : '';
+          const changesHtml = gs.changed_count > 0 ? `<span class="git-changes"><span class="git-dot"></span>${gs.changed_count}</span>` : '';
+          const aheadHtml = gs.ahead > 0 ? `<span class="git-ahead">${icons.gitArrowUp}${gs.ahead}</span>` : '';
+          gitInfoHtml = `<div class="git-info">${branchHtml}${changesHtml}${aheadHtml}</div>`;
+        }
+
+        // Action buttons: commit/push appear only when relevant
+        const showCommit = gs && gs.changed_count > 0;
+        const showPush = gs && gs.ahead > 0;
+        const commitBtn = showCommit ? `<button class="project-action-btn commit-btn" title="Commit" onclick="event.stopPropagation(); showCommitInput(${pi})">${icons.gitCommit}</button>` : '';
+        const pushBtn = showPush ? `<button class="project-action-btn push-btn" title="Push" onclick="event.stopPropagation(); pushProject(${pi})">${icons.gitPush}</button>` : '';
+
+        // Commit input row
+        const commitRowId = `commit-row-${pi}`;
+
+        return `<div class="project-item ${expandedClass}" data-project-idx="${pi}">
+          <div class="project-header" id="project-header-${pi}" onclick="toggleProject(${pi})">
+            ${icons.chevron}
+            ${icons.folder}
+            <span class="project-name" title="${p.path}">${p.name}</span>
+            ${gitInfoHtml}
+            <span class="project-count ${countClass}">${termCount}</span>
+            <div class="project-actions">
+              ${commitBtn}
+              ${pushBtn}
+              <button class="project-action-btn" title="New terminal" onclick="event.stopPropagation(); spawnProjectTerminal(${pi})">${icons.plus}</button>
+              <button class="project-action-btn remove-btn" title="Remove project" onclick="event.stopPropagation(); removeProject(${pi})">${icons.remove}</button>
+            </div>
+          </div>
+          <div class="git-commit-row" id="${commitRowId}">
+            <input class="git-commit-field" placeholder="commit message..." onkeydown="handleCommitKey(event, ${pi})" onclick="event.stopPropagation()">
+          </div>
+          <div class="project-terminals">${termItems}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function toggleProject(idx) {
+      projects[idx].expanded = !projects[idx].expanded;
+      renderSidebar();
+    }
+
+    async function removeProject(idx) {
+      const project = projects[idx];
+      // Close all terminals in this project
+      for (const t of [...project.terminals]) {
+        await closeTerminal(t.id);
+      }
+      projects.splice(idx, 1);
+      await persistProjects();
+      renderSidebar();
+    }
+
+    // ===== Git status =====
+    async function refreshGitStatus(projectIdx) {
+      const p = projects[projectIdx];
+      if (!p) return;
+      try {
+        p.gitStatus = await invoke('get_git_status', { path: p.path });
+      } catch (e) {
+        p.gitStatus = null;
+      }
+    }
+
+    async function refreshAllGitStatuses() {
+      const promises = projects.map((_, i) => refreshGitStatus(i));
+      await Promise.all(promises);
+      renderSidebar();
+    }
+
+    // Poll git status every 8 seconds
+    setInterval(refreshAllGitStatuses, 8000);
+
+    function showCommitInput(idx) {
+      const row = document.getElementById(`commit-row-${idx}`);
+      if (!row) return;
+      const isVisible = row.classList.contains('visible');
+      // Close all other commit rows
+      document.querySelectorAll('.git-commit-row.visible').forEach(r => r.classList.remove('visible'));
+      if (!isVisible) {
+        row.classList.add('visible');
+        const input = row.querySelector('input');
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    async function handleCommitKey(event, idx) {
+      event.stopPropagation();
+      if (event.key === 'Escape') {
+        document.getElementById(`commit-row-${idx}`).classList.remove('visible');
+        return;
+      }
+      if (event.key !== 'Enter') return;
+      const input = event.target;
+      const message = input.value.trim();
+      if (!message) return;
+
+      const header = document.getElementById(`project-header-${idx}`);
+      header?.classList.add('git-busy');
+      input.disabled = true;
+
+      try {
+        await invoke('git_add_and_commit', { path: projects[idx].path, message });
+        document.getElementById(`commit-row-${idx}`).classList.remove('visible');
+        await refreshGitStatus(idx);
+        renderSidebar();
+      } catch (e) {
+        input.value = '';
+        input.placeholder = 'Error: ' + (e || 'commit failed');
+        input.disabled = false;
+        setTimeout(() => { input.placeholder = 'commit message...'; }, 2000);
+      }
+      header?.classList.remove('git-busy');
+    }
+
+    async function pushProject(idx) {
+      const header = document.getElementById(`project-header-${idx}`);
+      header?.classList.add('git-busy');
+      try {
+        await invoke('git_push', { path: projects[idx].path });
+        await refreshGitStatus(idx);
+        renderSidebar();
+      } catch (e) {
+        console.error('Push failed:', e);
+      }
+      header?.classList.remove('git-busy');
+    }
+
+    // ===== Spawn terminal in project directory =====
+    async function spawnProjectTerminal(projectIdx) {
+      const project = projects[projectIdx];
+      project.expanded = true;
+
+      try {
+        const id = await invoke('spawn_terminal', { cwd: project.path });
 
         const xterm = new window.Terminal({
           theme: {
@@ -658,87 +1479,132 @@
         const fitAddon = new FitAddon.FitAddon();
         xterm.loadAddon(fitAddon);
 
-        // Create pane
         const paneEl = document.createElement('div');
         paneEl.className = 'terminal-pane';
-        paneEl.id = xtermId;
-        const container = document.getElementById('terminals-container');
-
-        // Add split handle if not first
-        if (terminals.length > 0) {
-          const handle = document.createElement('div');
-          handle.className = 'terminal-split-handle';
-          handle.dataset.leftPane = terminals[terminals.length - 1].xtermId;
-          handle.dataset.rightPane = xtermId;
-          container.appendChild(handle);
-          setupSplitDrag(handle);
-        }
-
-        container.appendChild(paneEl);
+        paneEl.id = 'term-' + id;
+        document.getElementById('terminals-container').appendChild(paneEl);
         xterm.open(paneEl);
 
-        // Forward input to Rust
         xterm.onData((data) => invoke('write_terminal', { data, id }));
 
-        // Tab
-        const tab = document.createElement('button');
-        tab.className = 'terminal-tab';
-        tab.dataset.id = id;
-        tab.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> bash ${id} <span class="close-tab" onclick="event.stopPropagation(); closeTerminal(${id})">×</span>`;
-        tab.addEventListener('click', () => activateTerminal(id));
-        document.getElementById('terminal-tabs').insertBefore(tab, document.getElementById('add-terminal-btn'));
+        project.terminals.push({ id, xterm, fitAddon, paneEl });
 
-        terminals.push({ id, xtermId, xterm, fitAddon, paneEl, tab });
+        showTerminalPanel();
         activateTerminal(id);
+        renderSidebar();
 
         setTimeout(() => {
           fitAddon.fit();
           const dims = fitAddon.proposeDimensions();
           if (dims) invoke('resize_terminal', { id, cols: dims.cols, rows: dims.rows });
         }, 100);
+
       } catch (err) {
         console.error('Failed to spawn terminal:', err);
       }
     }
 
     function activateTerminal(id) {
-      const idx = terminals.findIndex(t => t.id === id);
-      if (idx === -1) return;
-      activeTermIdx = idx;
-      document.querySelectorAll('.terminal-tab').forEach(t => t.classList.remove('active'));
-      terminals[idx].tab.classList.add('active');
-      terminals[idx].xterm.focus();
+      activeTermId = id;
+
+      // Hide all panes, show active
+      document.querySelectorAll('.terminal-pane').forEach(p => p.classList.remove('active-pane'));
+      const term = findTerminal(id);
+      if (term) {
+        term.paneEl.classList.add('active-pane');
+        const project = findTerminalProject(id);
+        document.getElementById('terminal-panel-name').textContent = project ? `${project.name} / bash ${id}` : `bash ${id}`;
+        setTimeout(() => {
+          term.fitAddon.fit();
+          const d = term.fitAddon.proposeDimensions();
+          if (d) invoke('resize_terminal', { id, cols: d.cols, rows: d.rows });
+          term.xterm.focus();
+        }, 50);
+      }
+
+      renderSidebar();
     }
 
     async function closeTerminal(id) {
-      const idx = terminals.findIndex(t => t.id === id);
-      if (idx === -1) return;
       await invoke('close_terminal', { id });
-      const term = terminals[idx];
-      term.xterm.dispose();
 
-      // Remove split handle
-      const container = document.getElementById('terminals-container');
-      const prev = container.querySelector(`.terminal-split-handle[data-right-pane="${term.xtermId}"]`);
-      const next = container.querySelector(`.terminal-split-handle[data-left-pane="${term.xtermId}"]`);
-      if (prev) prev.remove(); else if (next) next.remove();
-      term.paneEl.remove();
-      term.tab.remove();
-      terminals.splice(idx, 1);
+      for (const p of projects) {
+        const idx = p.terminals.findIndex(t => t.id === id);
+        if (idx !== -1) {
+          p.terminals[idx].xterm.dispose();
+          p.terminals[idx].paneEl.remove();
+          p.terminals.splice(idx, 1);
+          break;
+        }
+      }
 
-      if (terminals.length === 0) hideTerminalPanel();
-      else { activateTerminal(terminals[Math.min(idx, terminals.length - 1)].id); fitAllTerminals(); }
+      // Activate next terminal or hide panel
+      const allTerminals = projects.flatMap(p => p.terminals);
+      if (allTerminals.length === 0) {
+        activeTermId = null;
+        hideTerminalPanel();
+      } else if (activeTermId === id) {
+        activateTerminal(allTerminals[allTerminals.length - 1].id);
+      }
+
+      renderSidebar();
     }
 
-    function fitAllTerminals() {
-      terminals.forEach(t => {
+    // ===== Terminal panel visibility =====
+    function showTerminalPanel() {
+      const panel = document.getElementById('terminal-panel');
+      const handle = document.getElementById('resize-handle');
+      if (panel.classList.contains('visible')) return;
+      panel.classList.add('visible');
+      panel.style.height = terminalPanelHeight + 'px';
+      handle.style.display = '';
+    }
+
+    function hideTerminalPanel() {
+      document.getElementById('terminal-panel').classList.remove('visible');
+      document.getElementById('resize-handle').style.display = 'none';
+      document.getElementById('terminal-panel-name').textContent = '';
+    }
+
+    function fitActiveTerminal() {
+      if (!activeTermId) return;
+      const term = findTerminal(activeTermId);
+      if (term) {
         try {
-          t.fitAddon.fit();
-          const d = t.fitAddon.proposeDimensions();
-          if (d) invoke('resize_terminal', { id: t.id, cols: d.cols, rows: d.rows });
+          term.fitAddon.fit();
+          const d = term.fitAddon.proposeDimensions();
+          if (d) invoke('resize_terminal', { id: activeTermId, cols: d.cols, rows: d.rows });
         } catch (e) {}
-      });
+      }
     }
+
+    // ===== Sidebar toggle =====
+    document.getElementById('toggle-sidebar').addEventListener('click', () => {
+      const sidebar = document.getElementById('sidebar');
+      const resizeHandle = document.getElementById('sidebar-resize');
+      const btn = document.getElementById('toggle-sidebar');
+      sidebar.classList.toggle('collapsed');
+      resizeHandle.style.display = sidebar.classList.contains('collapsed') ? 'none' : '';
+      btn.classList.toggle('active', !sidebar.classList.contains('collapsed'));
+      setTimeout(fitActiveTerminal, 250);
+    });
+    // Sidebar starts visible
+    document.getElementById('toggle-sidebar').classList.add('active');
+
+    // ===== Tasks toggle =====
+    document.getElementById('toggle-tasks').addEventListener('click', () => {
+      tasksVisible = !tasksVisible;
+      const panel = document.getElementById('tasks-panel');
+      const btn = document.getElementById('toggle-tasks');
+      panel.classList.toggle('hidden', !tasksVisible);
+      btn.classList.toggle('active', tasksVisible);
+      if (tasksVisible) {
+        panel.style.flex = '1';
+        panel.style.height = '';
+      }
+      setTimeout(fitActiveTerminal, 50);
+    });
+    document.getElementById('toggle-tasks').classList.add('active');
 
     // ===== Vertical Resize (tasks <-> terminal) =====
     const resizeHandle = document.getElementById('resize-handle');
@@ -753,70 +1619,180 @@
 
     document.addEventListener('mousemove', (e) => {
       if (!isVResizing) return;
-      const layout = document.getElementById('main-layout');
+      const layout = document.getElementById('content-area');
       const rect = layout.getBoundingClientRect();
       const mouseY = e.clientY - rect.top;
       const totalH = rect.height;
-      let tasksH = Math.max(120, Math.min(mouseY, totalH - 156));
+      let tasksH = Math.max(80, Math.min(mouseY, totalH - 156));
       let termH = totalH - tasksH - 6;
 
       document.getElementById('tasks-panel').style.flex = 'none';
       document.getElementById('tasks-panel').style.height = tasksH + 'px';
       document.getElementById('terminal-panel').style.height = termH + 'px';
       terminalPanelHeight = termH;
-      fitAllTerminals();
+      fitActiveTerminal();
     });
 
     document.addEventListener('mouseup', () => {
-      if (isVResizing) { isVResizing = false; resizeHandle.classList.remove('active'); document.body.style.cursor = ''; fitAllTerminals(); }
+      if (isVResizing) {
+        isVResizing = false;
+        resizeHandle.classList.remove('active');
+        document.body.style.cursor = '';
+        fitActiveTerminal();
+      }
     });
 
-    // ===== Horizontal Split Drag =====
-    function setupSplitDrag(handle) {
-      let dragging = false, startX, leftPane, rightPane, leftW, rightW;
+    // ===== Sidebar Resize =====
+    const sidebarResize = document.getElementById('sidebar-resize');
+    let isSidebarResizing = false;
+    let sidebarStartX = 0;
+    let sidebarStartW = 0;
 
-      handle.addEventListener('mousedown', (e) => {
-        dragging = true;
-        handle.classList.add('active');
-        startX = e.clientX;
-        leftPane = document.getElementById(handle.dataset.leftPane);
-        rightPane = document.getElementById(handle.dataset.rightPane);
-        leftW = leftPane.getBoundingClientRect().width;
-        rightW = rightPane.getBoundingClientRect().width;
-        document.body.style.cursor = 'col-resize';
-        e.preventDefault();
-      });
+    sidebarResize.addEventListener('mousedown', (e) => {
+      isSidebarResizing = true;
+      sidebarResize.classList.add('active');
+      sidebarStartX = e.clientX;
+      sidebarStartW = document.getElementById('sidebar').getBoundingClientRect().width;
+      document.body.style.cursor = 'col-resize';
+      e.preventDefault();
+    });
 
-      document.addEventListener('mousemove', (e) => {
-        if (!dragging) return;
-        const dx = e.clientX - startX;
-        leftPane.style.flex = `0 0 ${Math.max(100, leftW + dx)}px`;
-        rightPane.style.flex = `0 0 ${Math.max(100, rightW - dx)}px`;
-        fitAllTerminals();
-      });
+    document.addEventListener('mousemove', (e) => {
+      if (!isSidebarResizing) return;
+      const dx = e.clientX - sidebarStartX;
+      const newW = Math.max(180, Math.min(400, sidebarStartW + dx));
+      document.getElementById('sidebar').style.width = newW + 'px';
+    });
 
-      document.addEventListener('mouseup', () => {
-        if (dragging) {
-          dragging = false;
-          handle.classList.remove('active');
-          document.body.style.cursor = '';
-          // Normalize to proportional flex
-          const cw = document.getElementById('terminals-container').getBoundingClientRect().width;
-          document.querySelectorAll('.terminal-pane').forEach(p => {
-            const w = p.getBoundingClientRect().width;
-            p.style.flex = `${w / cw} 1 0`;
-          });
-          fitAllTerminals();
-        }
+    document.addEventListener('mouseup', () => {
+      if (isSidebarResizing) {
+        isSidebarResizing = false;
+        sidebarResize.classList.remove('active');
+        document.body.style.cursor = '';
+        fitActiveTerminal();
+      }
+    });
+
+    // ===== Add Project Modal =====
+    let modalDirs = [];
+    let modalSelected = new Set();
+
+    document.getElementById('sidebar-add-btn').addEventListener('click', openAddModal);
+
+    function openAddModal() {
+      const modal = document.getElementById('add-project-modal');
+      modal.classList.add('open');
+      document.getElementById('modal-search').value = '';
+      document.getElementById('modal-search').focus();
+      modalSelected.clear();
+      modalDirs = [];
+      renderModalList();
+      updateModalFooter();
+
+      // Scan directories
+      document.getElementById('modal-list').innerHTML = `<div class="modal-loading"><div class="spinner"></div>Scanning directories...</div>`;
+      document.getElementById('modal-path-info').textContent = WSL_BASE + '/';
+
+      invoke('scan_wsl_dirs', { path: WSL_BASE }).then(dirs => {
+        modalDirs = dirs;
+        renderModalList();
+      }).catch(err => {
+        document.getElementById('modal-list').innerHTML = `<div class="modal-loading" style="color: var(--danger)">Failed to scan: ${err}</div>`;
       });
     }
 
-    window.addEventListener('resize', () => { if (terminalVisible) fitAllTerminals(); });
+    function closeAddModal() {
+      document.getElementById('add-project-modal').classList.remove('open');
+    }
 
-    // Ctrl+` to toggle terminal
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === '`') { e.preventDefault(); document.getElementById('toggle-terminal').click(); }
+    document.getElementById('modal-close').addEventListener('click', closeAddModal);
+    document.getElementById('modal-cancel').addEventListener('click', closeAddModal);
+    document.getElementById('add-project-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeAddModal();
     });
+
+    document.getElementById('modal-search').addEventListener('input', renderModalList);
+
+    function renderModalList() {
+      const filter = document.getElementById('modal-search').value.toLowerCase();
+      const list = document.getElementById('modal-list');
+      const existingPaths = new Set(projects.map(p => p.path));
+      const checkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+      const filtered = modalDirs.filter(d => d.name.toLowerCase().includes(filter));
+
+      if (filtered.length === 0 && modalDirs.length > 0) {
+        list.innerHTML = `<div class="modal-loading">No matches</div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(d => {
+        const alreadyAdded = existingPaths.has(d.path);
+        const selected = modalSelected.has(d.path);
+        const cls = alreadyAdded ? 'already-added' : selected ? 'selected' : '';
+        return `<div class="modal-dir-item ${cls}" data-path="${d.path}" onclick="toggleModalItem(this, '${d.path}', ${alreadyAdded})">
+          <div class="modal-dir-check">${checkSvg}</div>
+          <span class="modal-dir-name">${d.name}</span>
+          ${alreadyAdded ? '<span class="modal-dir-badge">added</span>' : ''}
+        </div>`;
+      }).join('');
+    }
+
+    function toggleModalItem(el, path, alreadyAdded) {
+      if (alreadyAdded) return;
+      if (modalSelected.has(path)) {
+        modalSelected.delete(path);
+      } else {
+        modalSelected.add(path);
+      }
+      renderModalList();
+      updateModalFooter();
+    }
+
+    function updateModalFooter() {
+      const count = modalSelected.size;
+      document.getElementById('modal-selected-count').textContent = `${count} selected`;
+      document.getElementById('modal-add').disabled = count === 0;
+    }
+
+    document.getElementById('modal-add').addEventListener('click', async () => {
+      const newProjects = modalDirs.filter(d => modalSelected.has(d.path));
+      for (const np of newProjects) {
+        if (!projects.find(p => p.path === np.path)) {
+          projects.push({ path: np.path, name: np.name, expanded: true, terminals: [] });
+        }
+      }
+      await persistProjects();
+      renderSidebar();
+      closeAddModal();
+    });
+
+    // ===== Keyboard shortcuts =====
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === '`') {
+        e.preventDefault();
+        // If there's an active terminal, focus it. Otherwise open first project terminal.
+        if (activeTermId) {
+          const term = findTerminal(activeTermId);
+          if (term) term.xterm.focus();
+        } else if (projects.length > 0) {
+          spawnProjectTerminal(0);
+        }
+      }
+      if (e.key === 'Escape') {
+        closeAddModal();
+      }
+      if (e.ctrlKey && e.key === 'b') {
+        e.preventDefault();
+        document.getElementById('toggle-sidebar').click();
+      }
+    });
+
+    // ===== Window resize =====
+    window.addEventListener('resize', () => fitActiveTerminal());
+
+    // ===== Init =====
+    initProjects();
   </script>
 </body>
 </html>
