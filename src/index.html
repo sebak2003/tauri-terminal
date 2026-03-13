@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tauri Terminal</title>
+  <link rel="stylesheet" href="vendor/xterm.css">
+  <style>
+    /* ===== Reset & Base ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-tertiary: #1a1a26;
+      --bg-hover: #1f1f2e;
+      --bg-active: #252538;
+      --border: rgba(255, 255, 255, 0.06);
+      --border-focus: rgba(139, 92, 246, 0.5);
+      --text-primary: #f0f0f5;
+      --text-secondary: #8888a0;
+      --text-tertiary: #55556a;
+      --accent: #8b5cf6;
+      --accent-soft: rgba(139, 92, 246, 0.12);
+      --accent-glow: rgba(139, 92, 246, 0.25);
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      --terminal-bg: #0c0c14;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      overflow: hidden;
+      height: 100vh;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== Titlebar ===== */
+    .titlebar {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      position: relative;
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+    }
+    .titlebar-drag {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+    .titlebar-controls {
+      display: flex;
+      gap: 8px;
+      position: relative;
+      z-index: 1;
+    }
+    .titlebar-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      transition: var(--transition);
+      opacity: 0.8;
+    }
+    .titlebar-btn:hover { opacity: 1; transform: scale(1.1); }
+    .btn-close { background: #ff5f57; }
+    .btn-minimize { background: #ffbd2e; }
+    .btn-maximize { background: #28c840; }
+
+    .titlebar-center {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+    .titlebar-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .titlebar-actions {
+      display: flex;
+      gap: 6px;
+      position: relative;
+      z-index: 1;
+    }
+    .titlebar-action {
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: inherit;
+    }
+    .titlebar-action:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: rgba(255,255,255,0.1);
+    }
+    .titlebar-action.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: var(--border-focus);
+    }
+
+    /* ===== Main Layout ===== */
+    .main-layout {
+      height: calc(100vh - 44px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== Tasks Panel ===== */
+    .tasks-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 120px;
+      position: relative;
+    }
+
+    .header {
+      padding: 16px 24px 16px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+    .greeting {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 400;
+      margin-bottom: 2px;
+    }
+    .date-display {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 8px;
+    }
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+    }
+    .stat-pill .val { font-weight: 700; }
+    .stat-pill .label { color: var(--text-tertiary); font-weight: 400; }
+    .stat-accent .val { color: var(--accent); }
+    .stat-success .val { color: var(--success); }
+
+    /* Tasks */
+    .tasks-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 24px;
+      padding-bottom: 70px;
+      scrollbar-width: none;
+    }
+    .tasks-scroll::-webkit-scrollbar { display: none; }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .task-item::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-radius: 0 2px 2px 0;
+      opacity: 0;
+      transition: var(--transition);
+    }
+    .task-item:hover { background: var(--bg-hover); transform: translateX(2px); }
+    .task-item:hover::before { opacity: 1; }
+    .task-item.priority-high::before { background: var(--danger); }
+    .task-item.priority-medium::before { background: var(--warning); }
+    .task-item.priority-low::before { background: var(--success); }
+    .task-item.completed { opacity: 0.4; }
+    .task-item.completed .task-title { text-decoration: line-through; text-decoration-color: var(--text-tertiary); }
+
+    .task-check {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--text-tertiary);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition);
+    }
+    .task-check:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .task-check.checked { border-color: var(--accent); background: var(--accent); }
+    .task-check.checked svg { opacity: 1; }
+    .task-check svg { width: 10px; height: 10px; opacity: 0; transition: var(--transition); }
+
+    .task-content { flex: 1; min-width: 0; }
+    .task-title { font-size: 13px; font-weight: 500; line-height: 1.3; }
+    .task-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+    .task-tag { font-size: 10px; padding: 1px 6px; border-radius: 20px; font-weight: 500; }
+    .tag-work { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .tag-personal { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+    .tag-health { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+    .tag-creative { background: rgba(244, 114, 182, 0.15); color: #f472b6; }
+    .tag-finance { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+    .task-time { font-size: 10px; color: var(--text-tertiary); }
+
+    .task-del {
+      width: 24px; height: 24px; border-radius: var(--radius-sm);
+      border: none; background: transparent; color: var(--text-tertiary);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: var(--transition); opacity: 0; flex-shrink: 0;
+    }
+    .task-item:hover .task-del { opacity: 1; }
+    .task-del:hover { background: var(--bg-active); color: var(--danger); }
+
+    /* Add task bar */
+    .add-task-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 12px 24px 16px;
+      background: linear-gradient(to top, var(--bg-primary) 60%, transparent);
+      z-index: 10;
+    }
+    .add-task-input-wrap {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 3px 5px 3px 16px;
+      transition: var(--transition);
+      box-shadow: var(--shadow-md);
+    }
+    .add-task-input-wrap:focus-within {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow), var(--shadow-md);
+    }
+    .add-task-input {
+      flex: 1; background: none; border: none; outline: none;
+      color: var(--text-primary); font-size: 13px; font-family: inherit; padding: 8px 0;
+    }
+    .add-task-input::placeholder { color: var(--text-tertiary); }
+    .add-task-btn {
+      width: 32px; height: 32px; border-radius: var(--radius-md); border: none;
+      background: var(--accent); color: white; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition); flex-shrink: 0;
+    }
+    .add-task-btn:hover { background: #7c3aed; transform: scale(1.05); }
+
+    /* ===== Resize Handle (vertical, between tasks and terminal) ===== */
+    .resize-handle {
+      height: 6px;
+      background: var(--bg-primary);
+      cursor: row-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+    .resize-handle:hover, .resize-handle.active {
+      background: var(--accent-soft);
+    }
+    .resize-handle::after {
+      content: '';
+      width: 40px; height: 2px;
+      background: var(--text-tertiary);
+      border-radius: 1px;
+      opacity: 0.4;
+    }
+
+    /* ===== Terminal Panel ===== */
+    .terminal-panel {
+      display: none;
+      flex-direction: column;
+      min-height: 150px;
+      background: var(--terminal-bg);
+    }
+    .terminal-panel.visible { display: flex; }
+
+    .terminal-tabs {
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      height: 34px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      gap: 2px;
+    }
+    .terminal-tab {
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      background: none;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    .terminal-tab:hover { color: var(--text-secondary); background: var(--bg-hover); }
+    .terminal-tab.active { color: var(--text-primary); background: var(--bg-tertiary); }
+    .terminal-tab .close-tab {
+      width: 14px; height: 14px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 3px;
+      opacity: 0;
+      transition: var(--transition);
+      font-size: 14px;
+      line-height: 1;
+    }
+    .terminal-tab:hover .close-tab { opacity: 0.6; }
+    .terminal-tab .close-tab:hover { opacity: 1; background: rgba(248,113,113,0.2); color: var(--danger); }
+
+    .add-terminal-btn {
+      width: 24px; height: 24px;
+      border-radius: var(--radius-sm);
+      border: 1px dashed var(--text-tertiary);
+      background: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition);
+      margin-left: 4px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .add-terminal-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    /* Terminal containers */
+    .terminals-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .terminal-pane {
+      flex: 1;
+      position: relative;
+      min-width: 100px;
+      overflow: hidden;
+    }
+    .terminal-pane .xterm {
+      height: 100%;
+      padding: 6px 0 0 8px;
+    }
+
+    .terminal-split-handle {
+      width: 4px;
+      background: var(--bg-primary);
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background var(--transition);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+    }
+    .terminal-split-handle:hover, .terminal-split-handle.active {
+      background: var(--accent-soft);
+    }
+
+    /* ===== Animations ===== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .task-item { animation: fadeInUp 250ms ease both; }
+    .task-item:nth-child(1) { animation-delay: 30ms; }
+    .task-item:nth-child(2) { animation-delay: 60ms; }
+    .task-item:nth-child(3) { animation-delay: 90ms; }
+    .task-item:nth-child(4) { animation-delay: 120ms; }
+    .task-item:nth-child(5) { animation-delay: 150ms; }
+    .task-item:nth-child(6) { animation-delay: 180ms; }
+    .task-item:nth-child(7) { animation-delay: 210ms; }
+    .task-item:nth-child(8) { animation-delay: 240ms; }
+
+    .bg-glow {
+      position: fixed; top: -100px; right: -100px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none; opacity: 0.2; z-index: 0;
+    }
+
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <!-- Titlebar -->
+  <div class="titlebar">
+    <div class="titlebar-drag" data-tauri-drag-region></div>
+    <div class="titlebar-controls">
+      <button class="titlebar-btn btn-close" id="titlebar-close"></button>
+      <button class="titlebar-btn btn-minimize" id="titlebar-minimize"></button>
+      <button class="titlebar-btn btn-maximize" id="titlebar-maximize"></button>
+    </div>
+    <div class="titlebar-center">
+      <span class="titlebar-title">Tauri Terminal</span>
+    </div>
+    <div class="titlebar-actions">
+      <button class="titlebar-action" id="toggle-terminal">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Terminal
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="main-layout" id="main-layout">
+    <!-- Tasks Panel -->
+    <div class="tasks-panel" id="tasks-panel">
+      <div class="header">
+        <div>
+          <div class="greeting" id="greeting">Good morning</div>
+          <div class="date-display" id="date-display">Friday, March 13</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-pill stat-accent"><span class="val" id="stat-total">8</span><span class="label">tasks</span></div>
+          <div class="stat-pill stat-success"><span class="val" id="stat-done">3</span><span class="label">done</span></div>
+        </div>
+      </div>
+
+      <div class="tasks-scroll" id="tasks-container"></div>
+
+      <div class="add-task-bar">
+        <div class="add-task-input-wrap">
+          <input type="text" class="add-task-input" id="task-input" placeholder="Add a new task..." spellcheck="false">
+          <button class="add-task-btn" id="add-btn" title="Add task">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resize Handle -->
+    <div class="resize-handle" id="resize-handle" style="display:none;"></div>
+
+    <!-- Terminal Panel -->
+    <div class="terminal-panel" id="terminal-panel">
+      <div class="terminal-tabs" id="terminal-tabs">
+        <button class="add-terminal-btn" id="add-terminal-btn" title="New terminal">+</button>
+      </div>
+      <div class="terminals-container" id="terminals-container"></div>
+    </div>
+  </div>
+
+  <script src="vendor/xterm.js"></script>
+  <script src="vendor/addon-fit.js"></script>
+  <script>
+    // ===== Tauri APIs =====
+    const { getCurrentWindow } = window.__TAURI__.window;
+    const { invoke } = window.__TAURI__.core;
+    const { listen } = window.__TAURI__.event;
+    const appWindow = getCurrentWindow();
+
+    document.getElementById('titlebar-close').addEventListener('click', () => appWindow.close());
+    document.getElementById('titlebar-minimize').addEventListener('click', () => appWindow.minimize());
+    document.getElementById('titlebar-maximize').addEventListener('click', () => appWindow.toggleMaximize());
+
+    // ===== Tasks =====
+    const checkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    const trashSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+
+    let tasks = [
+      { id: 1, title: 'Review Q1 analytics dashboard', tag: 'work', time: '9:00 AM', priority: 'high', done: false },
+      { id: 2, title: 'Morning run — 5K at the park', tag: 'health', time: '7:30 AM', priority: 'medium', done: true },
+      { id: 3, title: 'Call insurance about renewal', tag: 'finance', time: '10:30 AM', priority: 'high', done: false },
+      { id: 4, title: 'Sketch new logo concepts', tag: 'creative', time: '11:00 AM', priority: 'low', done: false },
+      { id: 5, title: 'Prepare team standup notes', tag: 'work', time: '8:45 AM', priority: 'medium', done: true },
+      { id: 6, title: 'Grocery run — farmers market', tag: 'personal', time: '1:00 PM', priority: 'low', done: false },
+      { id: 7, title: 'Read chapter 4 of Deep Work', tag: 'personal', time: '9:00 PM', priority: 'low', done: true },
+      { id: 8, title: 'Deploy staging environment fixes', tag: 'work', time: '3:00 PM', priority: 'high', done: false },
+    ];
+    let nextTaskId = 9;
+
+    function updateHeader() {
+      const h = new Date().getHours();
+      document.getElementById('greeting').textContent = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+      document.getElementById('date-display').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+
+    function renderTasks() {
+      const c = document.getElementById('tasks-container');
+      const pri = { high: 0, medium: 1, low: 2 };
+      const sorted = [...tasks].sort((a, b) => a.done !== b.done ? (a.done ? 1 : -1) : pri[a.priority] - pri[b.priority]);
+      c.innerHTML = sorted.map(t => `
+        <div class="task-item ${t.done ? 'completed' : ''} priority-${t.priority}" data-id="${t.id}">
+          <div class="task-check ${t.done ? 'checked' : ''}" onclick="toggleTask(${t.id})">${checkSvg}</div>
+          <div class="task-content" onclick="toggleTask(${t.id})">
+            <div class="task-title">${t.title}</div>
+            <div class="task-meta">
+              <span class="task-tag tag-${t.tag}">${t.tag}</span>
+              <span class="task-time">${t.time}</span>
+            </div>
+          </div>
+          <button class="task-del" onclick="deleteTask(${t.id})">${trashSvg}</button>
+        </div>`).join('');
+      document.getElementById('stat-total').textContent = tasks.length;
+      document.getElementById('stat-done').textContent = tasks.filter(t => t.done).length;
+    }
+
+    function toggleTask(id) { const t = tasks.find(x => x.id === id); if (t) { t.done = !t.done; renderTasks(); } }
+    function deleteTask(id) {
+      const el = document.querySelector(`.task-item[data-id="${id}"]`);
+      if (el) { el.style.transition = '250ms'; el.style.opacity = '0'; el.style.transform = 'translateX(30px)'; setTimeout(() => { tasks = tasks.filter(t => t.id !== id); renderTasks(); }, 230); }
+    }
+    function addTask() {
+      const input = document.getElementById('task-input');
+      const title = input.value.trim();
+      if (!title) return;
+      const tags = ['work', 'personal', 'health', 'creative', 'finance'];
+      const pris = ['high', 'medium', 'low'];
+      tasks.unshift({ id: nextTaskId++, title, tag: tags[Math.floor(Math.random() * tags.length)], time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), priority: pris[Math.floor(Math.random() * pris.length)], done: false });
+      input.value = '';
+      renderTasks();
+    }
+
+    document.getElementById('add-btn').addEventListener('click', addTask);
+    document.getElementById('task-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+    updateHeader();
+    renderTasks();
+    setInterval(updateHeader, 60000);
+
+    // =======================================
+    // ===== TERMINAL SYSTEM =====
+    // =======================================
+
+    const FitAddon = window['FitAddon'];
+    let terminals = [];
+    let activeTermIdx = -1;
+    let terminalVisible = false;
+    let terminalPanelHeight = 320;
+
+    // Listen for terminal output from Rust
+    listen('terminal-output', (event) => {
+      const { id, data } = event.payload;
+      const term = terminals.find(t => t.id === id);
+      if (term) term.xterm.write(data);
+    });
+
+    listen('terminal-exited', (event) => {
+      const { id } = event.payload;
+      const term = terminals.find(t => t.id === id);
+      if (term) term.xterm.writeln('\r\n\x1b[90m[Process exited]\x1b[0m');
+    });
+
+    // Toggle terminal
+    document.getElementById('toggle-terminal').addEventListener('click', async () => {
+      if (!terminalVisible) {
+        showTerminalPanel();
+        if (terminals.length === 0) await createTerminal();
+      } else {
+        hideTerminalPanel();
+      }
+    });
+
+    document.getElementById('add-terminal-btn').addEventListener('click', () => createTerminal());
+
+    function showTerminalPanel() {
+      terminalVisible = true;
+      document.getElementById('terminal-panel').classList.add('visible');
+      document.getElementById('terminal-panel').style.height = terminalPanelHeight + 'px';
+      document.getElementById('resize-handle').style.display = '';
+      document.getElementById('toggle-terminal').classList.add('active');
+      setTimeout(() => fitAllTerminals(), 50);
+    }
+
+    function hideTerminalPanel() {
+      terminalVisible = false;
+      document.getElementById('terminal-panel').classList.remove('visible');
+      document.getElementById('resize-handle').style.display = 'none';
+      document.getElementById('toggle-terminal').classList.remove('active');
+    }
+
+    async function createTerminal() {
+      try {
+        const id = await invoke('spawn_terminal');
+        const xtermId = 'term-' + id;
+
+        const xterm = new window.Terminal({
+          theme: {
+            background: '#0c0c14',
+            foreground: '#e0e0e8',
+            cursor: '#8b5cf6',
+            cursorAccent: '#0c0c14',
+            selectionBackground: 'rgba(139, 92, 246, 0.3)',
+            black: '#1a1a26', red: '#f87171', green: '#34d399', yellow: '#fbbf24',
+            blue: '#60a5fa', magenta: '#c084fc', cyan: '#22d3ee', white: '#e0e0e8',
+            brightBlack: '#55556a', brightRed: '#fca5a5', brightGreen: '#6ee7b7', brightYellow: '#fde68a',
+            brightBlue: '#93c5fd', brightMagenta: '#d8b4fe', brightCyan: '#67e8f9', brightWhite: '#f0f0f5',
+          },
+          fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'SF Mono', Menlo, monospace",
+          fontSize: 13,
+          lineHeight: 1.3,
+          cursorBlink: true,
+          cursorStyle: 'bar',
+          scrollback: 5000,
+          allowProposedApi: true,
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+        xterm.loadAddon(fitAddon);
+
+        // Create pane
+        const paneEl = document.createElement('div');
+        paneEl.className = 'terminal-pane';
+        paneEl.id = xtermId;
+        const container = document.getElementById('terminals-container');
+
+        // Add split handle if not first
+        if (terminals.length > 0) {
+          const handle = document.createElement('div');
+          handle.className = 'terminal-split-handle';
+          handle.dataset.leftPane = terminals[terminals.length - 1].xtermId;
+          handle.dataset.rightPane = xtermId;
+          container.appendChild(handle);
+          setupSplitDrag(handle);
+        }
+
+        container.appendChild(paneEl);
+        xterm.open(paneEl);
+
+        // Forward input to Rust
+        xterm.onData((data) => invoke('write_terminal', { data, id }));
+
+        // Tab
+        const tab = document.createElement('button');
+        tab.className = 'terminal-tab';
+        tab.dataset.id = id;
+        tab.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> bash ${id} <span class="close-tab" onclick="event.stopPropagation(); closeTerminal(${id})">×</span>`;
+        tab.addEventListener('click', () => activateTerminal(id));
+        document.getElementById('terminal-tabs').insertBefore(tab, document.getElementById('add-terminal-btn'));
+
+        terminals.push({ id, xtermId, xterm, fitAddon, paneEl, tab });
+        activateTerminal(id);
+
+        setTimeout(() => {
+          fitAddon.fit();
+          const dims = fitAddon.proposeDimensions();
+          if (dims) invoke('resize_terminal', { id, cols: dims.cols, rows: dims.rows });
+        }, 100);
+      } catch (err) {
+        console.error('Failed to spawn terminal:', err);
+      }
+    }
+
+    function activateTerminal(id) {
+      const idx = terminals.findIndex(t => t.id === id);
+      if (idx === -1) return;
+      activeTermIdx = idx;
+      document.querySelectorAll('.terminal-tab').forEach(t => t.classList.remove('active'));
+      terminals[idx].tab.classList.add('active');
+      terminals[idx].xterm.focus();
+    }
+
+    async function closeTerminal(id) {
+      const idx = terminals.findIndex(t => t.id === id);
+      if (idx === -1) return;
+      await invoke('close_terminal', { id });
+      const term = terminals[idx];
+      term.xterm.dispose();
+
+      // Remove split handle
+      const container = document.getElementById('terminals-container');
+      const prev = container.querySelector(`.terminal-split-handle[data-right-pane="${term.xtermId}"]`);
+      const next = container.querySelector(`.terminal-split-handle[data-left-pane="${term.xtermId}"]`);
+      if (prev) prev.remove(); else if (next) next.remove();
+      term.paneEl.remove();
+      term.tab.remove();
+      terminals.splice(idx, 1);
+
+      if (terminals.length === 0) hideTerminalPanel();
+      else { activateTerminal(terminals[Math.min(idx, terminals.length - 1)].id); fitAllTerminals(); }
+    }
+
+    function fitAllTerminals() {
+      terminals.forEach(t => {
+        try {
+          t.fitAddon.fit();
+          const d = t.fitAddon.proposeDimensions();
+          if (d) invoke('resize_terminal', { id: t.id, cols: d.cols, rows: d.rows });
+        } catch (e) {}
+      });
+    }
+
+    // ===== Vertical Resize (tasks <-> terminal) =====
+    const resizeHandle = document.getElementById('resize-handle');
+    let isVResizing = false;
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+      isVResizing = true;
+      resizeHandle.classList.add('active');
+      document.body.style.cursor = 'row-resize';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isVResizing) return;
+      const layout = document.getElementById('main-layout');
+      const rect = layout.getBoundingClientRect();
+      const mouseY = e.clientY - rect.top;
+      const totalH = rect.height;
+      let tasksH = Math.max(120, Math.min(mouseY, totalH - 156));
+      let termH = totalH - tasksH - 6;
+
+      document.getElementById('tasks-panel').style.flex = 'none';
+      document.getElementById('tasks-panel').style.height = tasksH + 'px';
+      document.getElementById('terminal-panel').style.height = termH + 'px';
+      terminalPanelHeight = termH;
+      fitAllTerminals();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isVResizing) { isVResizing = false; resizeHandle.classList.remove('active'); document.body.style.cursor = ''; fitAllTerminals(); }
+    });
+
+    // ===== Horizontal Split Drag =====
+    function setupSplitDrag(handle) {
+      let dragging = false, startX, leftPane, rightPane, leftW, rightW;
+
+      handle.addEventListener('mousedown', (e) => {
+        dragging = true;
+        handle.classList.add('active');
+        startX = e.clientX;
+        leftPane = document.getElementById(handle.dataset.leftPane);
+        rightPane = document.getElementById(handle.dataset.rightPane);
+        leftW = leftPane.getBoundingClientRect().width;
+        rightW = rightPane.getBoundingClientRect().width;
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - startX;
+        leftPane.style.flex = `0 0 ${Math.max(100, leftW + dx)}px`;
+        rightPane.style.flex = `0 0 ${Math.max(100, rightW - dx)}px`;
+        fitAllTerminals();
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (dragging) {
+          dragging = false;
+          handle.classList.remove('active');
+          document.body.style.cursor = '';
+          // Normalize to proportional flex
+          const cw = document.getElementById('terminals-container').getBoundingClientRect().width;
+          document.querySelectorAll('.terminal-pane').forEach(p => {
+            const w = p.getBoundingClientRect().width;
+            p.style.flex = `${w / cw} 1 0`;
+          });
+          fitAllTerminals();
+        }
+      });
+    }
+
+    window.addEventListener('resize', () => { if (terminalVisible) fitAllTerminals(); });
+
+    // Ctrl+` to toggle terminal
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === '`') { e.preventDefault(); document.getElementById('toggle-terminal').click(); }
+    });
+  </script>
+</body>
+</html>
