@@ -437,6 +437,39 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Claude Code state indicators */
+    .cc-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cc-working {
+      border: 1.5px solid transparent;
+      border-top-color: var(--accent);
+      animation: spin 700ms linear infinite;
+    }
+    .cc-idle {
+      width: 7px;
+      height: 7px;
+      background: #fbbf24;
+      box-shadow: 0 0 6px rgba(251, 191, 36, 0.3);
+      animation: ccAttention 2.5s ease-in-out infinite;
+    }
+    @keyframes ccAttention {
+      0%, 100% { box-shadow: 0 0 3px rgba(251, 191, 36, 0.2); opacity: 0.65; }
+      50% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.5); opacity: 1; }
+    }
+    /* Project-level CC attention dot */
+    .project-cc-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #fbbf24;
+      flex-shrink: 0;
+      animation: ccAttention 2.5s ease-in-out infinite;
+    }
+
     /* Terminal sub-items */
     .project-terminals {
       overflow: hidden;
@@ -783,6 +816,131 @@
       visibility: visible;
     }
 
+    /* ===== Browser Panel ===== */
+    .browser-panel {
+      display: none;
+      flex-direction: column;
+      width: 480px;
+      min-width: 280px;
+      background: var(--bg-primary);
+    }
+    .browser-panel.visible { display: flex; }
+
+    .browser-bar {
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      height: 36px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .browser-nav-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      flex-shrink: 0;
+      font-family: inherit;
+    }
+    .browser-nav-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    .browser-nav-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+    .browser-nav-btn:disabled:hover {
+      background: transparent;
+      color: var(--text-tertiary);
+    }
+    .browser-url-input {
+      flex: 1;
+      padding: 5px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 11.5px;
+      font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+      outline: none;
+      transition: var(--transition);
+      min-width: 0;
+    }
+    .browser-url-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .browser-url-input::placeholder { color: var(--text-tertiary); }
+
+    .browser-frame-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    .browser-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+    }
+    .browser-empty-state {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: var(--bg-primary);
+    }
+    .browser-empty-state.hidden { display: none; }
+    .browser-empty-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: var(--bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+    }
+    .browser-empty-hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* Browser resize handle */
+    .browser-resize {
+      width: 3px;
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background var(--transition);
+      display: none;
+      position: relative;
+    }
+    .browser-resize.visible { display: block; }
+    .browser-resize::after {
+      content: '';
+      position: absolute;
+      inset: 0 -3px;
+    }
+    .browser-resize:hover,
+    .browser-resize.active {
+      background: var(--accent);
+    }
+
     /* ===== Modal ===== */
     .modal-overlay {
       position: fixed;
@@ -1049,6 +1207,10 @@
       <button class="titlebar-action" id="toggle-sidebar" title="Toggle sidebar">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
       </button>
+      <button class="titlebar-action" id="toggle-browser" title="Toggle browser">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Browser
+      </button>
       <button class="titlebar-action" id="toggle-tasks" title="Toggle tasks">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
         My Day
@@ -1111,6 +1273,34 @@
           <span class="terminal-panel-spacer"></span>
         </div>
         <div class="terminals-container" id="terminals-container"></div>
+      </div>
+    </div>
+
+    <!-- Browser resize handle -->
+    <div class="browser-resize" id="browser-resize"></div>
+
+    <!-- Browser Panel -->
+    <div class="browser-panel" id="browser-panel">
+      <div class="browser-bar">
+        <button class="browser-nav-btn" id="browser-back" title="Back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="browser-nav-btn" id="browser-forward" title="Forward">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="browser-nav-btn" id="browser-refresh" title="Refresh">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+        <input type="text" class="browser-url-input" id="browser-url" placeholder="localhost:3000" spellcheck="false">
+      </div>
+      <div class="browser-frame-wrap">
+        <div class="browser-empty-state" id="browser-empty">
+          <div class="browser-empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <div class="browser-empty-hint">Type a URL and press Enter<br>to preview your app</div>
+        </div>
+        <iframe class="browser-frame" id="browser-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
       </div>
     </div>
   </div>
@@ -1240,16 +1430,46 @@
     let tasksVisible = true;
 
     // ===== Terminal events from Rust =====
+    // Braille spinner chars used by Claude Code during thinking
+    const CC_BRAILLE = /[\u280B\u2819\u2839\u2838\u283C\u2834\u2826\u2827\u2807\u280F]/;
+    // OSC title sequence: \x1b]0; or \x1b]2; ... \x07
+    const OSC_REGEX = /\x1b\][02];([^\x07]*)\x07/g;
+
     listen('terminal-output', (event) => {
       const { id, data } = event.payload;
       const term = findTerminal(id);
-      if (term) term.xterm.write(data);
+      if (!term) return;
+      term.xterm.write(data);
+      term.lastOutputTime = Date.now();
+
+      // Parse OSC title sequences for Claude Code detection
+      let match;
+      OSC_REGEX.lastIndex = 0;
+      while ((match = OSC_REGEX.exec(data)) !== null) {
+        const title = match[1];
+        if (/Claude Code|Claude:/.test(title)) {
+          term.isClaudeCode = true;
+          if (CC_BRAILLE.test(title)) {
+            // Spinner active = CC is working
+            term.ccLastSpinnerTime = Date.now();
+            if (term.claudeState !== 'working') {
+              term.claudeState = 'working';
+              renderSidebar();
+            }
+          }
+        }
+      }
     });
 
     listen('terminal-exited', (event) => {
       const { id } = event.payload;
       const term = findTerminal(id);
-      if (term) term.xterm.writeln('\r\n\x1b[90m[Process exited]\x1b[0m');
+      if (term) {
+        term.xterm.writeln('\r\n\x1b[90m[Process exited]\x1b[0m');
+        term.isClaudeCode = false;
+        term.claudeState = null;
+        renderSidebar();
+      }
     });
 
     function findTerminal(id) {
@@ -1308,9 +1528,18 @@
 
         const termItems = p.terminals.map((t, ti) => {
           const activeClass = t.id === activeTermId ? 'active' : '';
+          // Claude Code state indicator
+          let ccDot = '';
+          if (t.isClaudeCode && t.claudeState === 'working') {
+            ccDot = '<span class="cc-indicator cc-working"></span>';
+          } else if (t.isClaudeCode && t.claudeState === 'idle') {
+            ccDot = '<span class="cc-indicator cc-idle"></span>';
+          }
+          const termLabel = t.isClaudeCode ? `claude ${t.id}` : `bash ${t.id}`;
           return `<div class="terminal-subitem ${activeClass}" data-term-id="${t.id}" onclick="activateTerminal(${t.id})">
             ${icons.terminal}
-            <span class="term-label">bash ${t.id}</span>
+            <span class="term-label">${termLabel}</span>
+            ${ccDot}
             <button class="term-close" onclick="event.stopPropagation(); closeTerminal(${t.id})">&times;</button>
           </div>`;
         }).join('');
@@ -1330,6 +1559,10 @@
         const commitBtn = showCommit ? `<button class="project-action-btn commit-btn" title="Commit" onclick="event.stopPropagation(); showCommitInput(${pi})">${icons.gitCommit}</button>` : '';
         const pushBtn = showPush ? `<button class="project-action-btn push-btn" title="Push" onclick="event.stopPropagation(); pushProject(${pi})">${icons.gitPush}</button>` : '';
 
+        // CC attention dot on project header (visible even when collapsed)
+        const hasIdleCC = p.terminals.some(t => t.isClaudeCode && t.claudeState === 'idle');
+        const projectCCDot = hasIdleCC ? '<span class="project-cc-dot"></span>' : '';
+
         // Commit input row
         const commitRowId = `commit-row-${pi}`;
 
@@ -1338,6 +1571,7 @@
             ${icons.chevron}
             ${icons.folder}
             <span class="project-name" title="${p.path}">${p.name}</span>
+            ${projectCCDot}
             ${gitInfoHtml}
             <span class="project-count ${countClass}">${termCount}</span>
             <div class="project-actions">
@@ -1390,6 +1624,38 @@
 
     // Poll git status every 8 seconds
     setInterval(refreshAllGitStatuses, 8000);
+
+    // Claude Code idle detection — check every second
+    setInterval(() => {
+      let changed = false;
+      const now = Date.now();
+      for (const p of projects) {
+        for (const t of p.terminals) {
+          if (!t.isClaudeCode || !t.ccLastSpinnerTime) continue;
+          const sinceSpin = now - t.ccLastSpinnerTime;
+          const sinceOutput = now - (t.lastOutputTime || 0);
+
+          // Spinner stopped for 3s → idle (waiting for input)
+          if (t.claudeState === 'working' && sinceSpin > 3000) {
+            t.claudeState = 'idle';
+            changed = true;
+          }
+          // No spinner for 30s but recent output → user left CC, back to shell
+          if (t.claudeState === 'idle' && sinceSpin > 30000 && sinceOutput < 5000) {
+            t.isClaudeCode = false;
+            t.claudeState = null;
+            changed = true;
+          }
+          // No spinner for 3 minutes → auto-reset regardless
+          if (sinceSpin > 180000) {
+            t.isClaudeCode = false;
+            t.claudeState = null;
+            changed = true;
+          }
+        }
+      }
+      if (changed) renderSidebar();
+    }, 1000);
 
     function showCommitInput(idx) {
       const row = document.getElementById(`commit-row-${idx}`);
@@ -1487,7 +1753,13 @@
 
         xterm.onData((data) => invoke('write_terminal', { data, id }));
 
-        project.terminals.push({ id, xterm, fitAddon, paneEl });
+        project.terminals.push({
+          id, xterm, fitAddon, paneEl,
+          lastOutputTime: 0,
+          isClaudeCode: false,
+          claudeState: null,
+          ccLastSpinnerTime: 0,
+        });
 
         showTerminalPanel();
         activateTerminal(id);
@@ -1765,6 +2037,115 @@
       await persistProjects();
       renderSidebar();
       closeAddModal();
+    });
+
+    // ===== Browser Panel =====
+    let browserVisible = false;
+    let browserHistory = [];
+    let browserHistoryIdx = -1;
+    let browserPanelWidth = 480;
+
+    document.getElementById('toggle-browser').addEventListener('click', () => {
+      browserVisible = !browserVisible;
+      const panel = document.getElementById('browser-panel');
+      const resize = document.getElementById('browser-resize');
+      const btn = document.getElementById('toggle-browser');
+      panel.classList.toggle('visible', browserVisible);
+      resize.classList.toggle('visible', browserVisible);
+      btn.classList.toggle('active', browserVisible);
+      if (browserVisible) {
+        panel.style.width = browserPanelWidth + 'px';
+        document.getElementById('browser-url').focus();
+      }
+      setTimeout(fitActiveTerminal, 50);
+    });
+
+    document.getElementById('browser-url').addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      let url = e.target.value.trim();
+      if (!url) return;
+      if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
+      navigateBrowser(url);
+    });
+
+    function navigateBrowser(url) {
+      const frame = document.getElementById('browser-frame');
+      const empty = document.getElementById('browser-empty');
+      empty.classList.add('hidden');
+      frame.src = url;
+      document.getElementById('browser-url').value = url.replace(/^https?:\/\//, '');
+
+      // History management
+      if (browserHistoryIdx < browserHistory.length - 1) {
+        browserHistory = browserHistory.slice(0, browserHistoryIdx + 1);
+      }
+      browserHistory.push(url);
+      browserHistoryIdx = browserHistory.length - 1;
+      updateBrowserNav();
+    }
+
+    function updateBrowserNav() {
+      document.getElementById('browser-back').disabled = browserHistoryIdx <= 0;
+      document.getElementById('browser-forward').disabled = browserHistoryIdx >= browserHistory.length - 1;
+    }
+
+    document.getElementById('browser-back').addEventListener('click', () => {
+      if (browserHistoryIdx > 0) {
+        browserHistoryIdx--;
+        const url = browserHistory[browserHistoryIdx];
+        document.getElementById('browser-frame').src = url;
+        document.getElementById('browser-url').value = url.replace(/^https?:\/\//, '');
+        updateBrowserNav();
+      }
+    });
+
+    document.getElementById('browser-forward').addEventListener('click', () => {
+      if (browserHistoryIdx < browserHistory.length - 1) {
+        browserHistoryIdx++;
+        const url = browserHistory[browserHistoryIdx];
+        document.getElementById('browser-frame').src = url;
+        document.getElementById('browser-url').value = url.replace(/^https?:\/\//, '');
+        updateBrowserNav();
+      }
+    });
+
+    document.getElementById('browser-refresh').addEventListener('click', () => {
+      const frame = document.getElementById('browser-frame');
+      if (frame.src) frame.src = frame.src;
+    });
+
+    updateBrowserNav();
+
+    // Browser resize
+    const browserResize = document.getElementById('browser-resize');
+    let isBrowserResizing = false;
+    let browserStartX = 0;
+    let browserStartW = 0;
+
+    browserResize.addEventListener('mousedown', (e) => {
+      isBrowserResizing = true;
+      browserResize.classList.add('active');
+      browserStartX = e.clientX;
+      browserStartW = document.getElementById('browser-panel').getBoundingClientRect().width;
+      document.body.style.cursor = 'col-resize';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isBrowserResizing) return;
+      const dx = browserStartX - e.clientX;
+      const newW = Math.max(280, Math.min(900, browserStartW + dx));
+      document.getElementById('browser-panel').style.width = newW + 'px';
+      browserPanelWidth = newW;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isBrowserResizing) {
+        isBrowserResizing = false;
+        browserResize.classList.remove('active');
+        document.body.style.cursor = '';
+        fitActiveTerminal();
+      }
     });
 
     // ===== Keyboard shortcuts =====

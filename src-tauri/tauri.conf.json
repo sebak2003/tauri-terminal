@@ -25,6 +25,9 @@
     }
   },
   "app": {
+    "security": {
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval'; frame-src http: https: data: blob:; img-src 'self' asset: https: data:; font-src 'self' data:"
+    },
     "withGlobalTauri": true,
     "windows": [
       {
